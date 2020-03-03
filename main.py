@@ -287,12 +287,15 @@ def selectIndices(data, indices):
 
 # Batches data into a a list of batches of batchSize. 
 # Shuffles the data by default.
+# Randomly shuffles portion of data to test semantic honesty, if enabled in config file
 def getBatches(data, batchSize = None, shuffle = True):
     batches = []
 
     dataLen = getLength(data)
     if batchSize is None or batchSize > dataLen:
         batchSize = dataLen
+
+    # ['questions', 'questionLengths', 'answers', 'imageIds', 'indices', 'instances']
     
     indices = np.arange(dataLen)
     if shuffle:
@@ -554,11 +557,15 @@ def runEpoch(sess, model, data, train, epoch, saver = None, calle = None,
     preds = []
 
     # open image files
-    openImageFiles(data["images"])
+    if config.useImages:
+        openImageFiles(data["images"])
 
     ## prepare batches
     buckets = data["data"]
     dataLen = sum(getLength(bucket) for bucket in buckets)
+
+    print("datalen:", dataLen)
+    input()
     
     # make batches and randomize
     batches = []
@@ -571,10 +578,11 @@ def runEpoch(sess, model, data, train, epoch, saver = None, calle = None,
         batches, dataLen = alternateData(batches, alterData, dataLen)
 
     # start image loaders
-    if config.parallel:
-        loader = threading.Thread(target = loaderRun, args = (data["images"], batches))
-        loader.daemon = True
-        loader.start()
+    if config.useImages:
+        if config.parallel:
+            loader = threading.Thread(target = loaderRun, args = (data["images"], batches))
+            loader.daemon = True
+            loader.start()
 
     for batchNum, batch in enumerate(batches):   
         startTime = time.time()
@@ -583,14 +591,16 @@ def runEpoch(sess, model, data, train, epoch, saver = None, calle = None,
         batch = trimData(batch)
 
         # load images batch
-        if config.parallel:
-            if batchNum % config.taskSize == 0:
-                imagesBatches = imagesQueue.get()
-            imagesBatch = imagesBatches[batchNum % config.taskSize] # len(imagesBatches)     
-        else:
-            imagesBatch = loadImageBatch(data["images"], batch)
-        for i, imageId in enumerate(batch["imageIds"]):
-            assert imageId == imagesBatch["imageIds"][i]   
+        imagesBatch = None
+        if config.useImages:
+            if config.parallel:
+                if batchNum % config.taskSize == 0:
+                    imagesBatches = imagesQueue.get()
+                imagesBatch = imagesBatches[batchNum % config.taskSize] # len(imagesBatches)     
+            else:
+                imagesBatch = loadImageBatch(data["images"], batch)
+            for i, imageId in enumerate(batch["imageIds"]):
+                assert imageId == imagesBatch["imageIds"][i]   
         
         # run batch
         res = model.runBatch(sess, batch, imagesBatch, train, getAtt) 
@@ -622,7 +632,8 @@ def runEpoch(sess, model, data, train, epoch, saver = None, calle = None,
 
     print("")
 
-    closeImageFiles(data["images"])
+    if config.useImages:
+        closeImageFiles(data["images"])
 
     if config.parallel:
         loader.join() # should work

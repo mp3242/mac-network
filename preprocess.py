@@ -1,5 +1,5 @@
 import time
-import os
+import os, sys
 import random
 import json
 import pickle
@@ -323,7 +323,7 @@ class Preprocesser(object):
         else:
             with open(datasetFilename, "r") as datasetFile:
                 data = json.load(datasetFile)["questions"]            
-            for i in tqdm(range(len(data)), desc = "Preprocessing"):
+            for i in tqdm(range(len(data)), desc = "Preprocessing", ascii=True):
                 instance = data[i]
 
                 question = instance["question"]
@@ -358,6 +358,9 @@ class Preprocesser(object):
 
             random.shuffle(instances)
 
+            self.answerDict.addSeq("[NOP]")
+            self.qaDict.addSeq("[NOP]")
+
             self.questionDict.createVocab()
             self.answerDict.createVocab()
             self.qaDict.createVocab()
@@ -375,14 +378,15 @@ class Preprocesser(object):
         # data extraction
         datasetReader = {
             "CLEVR": self.readCLEVR,
-            "NLVR": self.readNLVR
+            "NLVR": self.readNLVR,
+            "SQUAD": self.readSQUAD
         }
 
         return datasetReader[config.dataset](datasetFilename, instancesFilename, train)
 
     # Reads dataset tier (train, val, test) and returns the loaded instances 
     # and image relevant filenames
-    def readTier(self, tier, train):
+    def readTier(self, tier, train, hasImages=True):
         imagesFilename = config.imagesFile(tier)
         datasetFilename = config.datasetFile(tier)
         instancesFilename = config.instancesFile(tier)
@@ -393,7 +397,12 @@ class Preprocesser(object):
         if config.dataset == "NLVR":
             images["imageIdsFilename"] = config.imagesIdsFile(tier)
             
-        return {"instances": instances, "images": images, "train": train}
+
+        #for SQUAD, hasImages==False (bypass config file)
+        if not hasImages:
+            return {"instances": instances, "images": None, "train": train}
+        else:
+            return {"instances": instances, "images": images, "train": train}
 
     '''
     Reads all tiers of a dataset (train if exists, val, test).
@@ -422,6 +431,7 @@ class Preprocesser(object):
         else:
             qDict = self.questionDict
 
+        #iterate over data because data is a bucket
         encodedQuestions = [qDict.encodeSequence(d["questionSeq"]) for d in data]
         questions, questionsL = vectorize2DList(encodedQuestions)
 
@@ -553,9 +563,34 @@ class Preprocesser(object):
         else:
             config.testedNum = len(data)
 
+        if config.scrambleAnswers:
+            numScramble = int(np.ceil(len(data)*config.scramblePortion))
+            firstHalf = data[0:numScramble//2]
+            secondHalf = data[numScramble//2:numScramble]
+            for i in range(len(firstHalf)):
+                temp = firstHalf[i]["questionSeq"]
+                firstHalf[i]["questionSeq"] = secondHalf[i]["questionSeq"]
+                secondHalf[i]["questionSeq"] = temp
+                assert firstHalf[i]["questionSeq"] != secondHalf[i]["questionSeq"]
+                # print(firstHalf[i]["answer"])
+                # sys.exit()
+                firstHalf[i]["answer"] = "[NOP]"
+                secondHalf[i]["answer"] = "[NOP]"
+
         # bucket
         buckets = self.bucketData(data, noBucket = noBucket)
+
+        class NumpyEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, np.ndarray):
+                    return obj.tolist()
+                return json.JSONEncoder.default(self, obj)
         
+        # print(list(data[0].keys()))
+        # print(list(buckets[0][0].keys()))
+        # print(json.dumps(buckets[0][0], indent=2, sort_keys=True, cls=NumpyEncoder))
+        # sys.exit()
+
         # vectorize
         return [self.vectorizeData(bucket) for bucket in buckets]
 

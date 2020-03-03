@@ -87,6 +87,8 @@ class Config(object):
     logFile         = lambda self: os.path.join(self.logDir(), self.logFilename.format(expName = self.expName))
     configFile      = lambda self: os.path.join(self.configDir(), self.configFilename.format(expName = self.expName))
 
+    useImages = True
+
 
 # global configuration variable. Holds file paths and program parameters
 config = Config()
@@ -129,7 +131,7 @@ def parseArgs():
     parser.add_argument("--expName",        default = "experiment", type = str,    help = "experiment name") 
 
     # data files
-    parser.add_argument("--dataset",         default = "CLEVR", choices = ["CLEVR", "NLVR"], type = str) # 
+    parser.add_argument("--dataset",         default = "CLEVR", choices = ["CLEVR", "NLVR", "SQUAD"], type = str) # 
     parser.add_argument("--dataBasedir",     default = "./", type = str,            help = "data base directory") # /jagupard14/scr1/dorarad/
     parser.add_argument("--generatedPrefix", default = "gennew", type = str,           help = "prefix for generated data files") 
     parser.add_argument("--featureType",     default = "norm_128x32", type = str,   help = "features type") #   
@@ -154,6 +156,10 @@ def parseArgs():
     # bucketing
     parser.add_argument("--noBucket",       action = "store_true",      help = "bucket data according to question length")        
     parser.add_argument("--noRebucket",     action = "store_true",      help = "bucket data according to question and program length") #
+
+    # scrambling
+    parser.add_argument("--scrambleAnswers", action = "store_true",      help = "test semantic honesty by scrambling answers")
+    parser.add_argument("--scramblePortion", default = .1, type = float, help = "percent of data to scramble") 
     
     # filtering
     parser.add_argument("--tOnlyChain",     action = "store_true",      help = "train only chain questions")
@@ -234,7 +240,7 @@ def parseArgs():
     parser.add_argument("--baselineProjDim", default = 64, type = int, help = "projection dimension for image linearizion")    
 
     parser.add_argument("--baselineAttNumLayers", default = 2, type = int, help = "number of stacked attention layers") 
-    parser.add_argument("--baselineAttType", default = "ADD", type = str, choices = ["MUL", "DIAG", "BL", "ADD"], help = "attention type (multiplicative, additive, etc)") 
+    parser.add_argument("--baselineAttType", default = "ADD", type = str, choices = ["MUL", "DIAG", "BL", "ADD"], help = "attention type (multiplicative, additive, etc)")
 
     ################ image input unit (the "stem")
 
@@ -465,8 +471,18 @@ def configNLVR():
         size = config.featureType.split("_")[-1].split("x")
         config.imageDims = [int(size[1]) / stridesOverall, int(size[0]) / stridesOverall, 3]
 
+def configSQUAD():
+    config.dataPath = "{dataBasedir}/SQUAD".format(dataBasedir = config.dataBasedir)
+    config.datasetFilename = "SQUAD_{tier}_questions.json"
+    config.wordVectorsFile = "./CLEVR_v1/data/glove/glove.6B.{dim}d.txt".format(dim = config.wrdEmbDim) #
+
+    # config.imageDims = [14, 14, 1024]
+    # config.programLims = [5, 10, 15, 20]
+    # config.questionLims = [10, 15, 20, 25]     
+
 ## dataset specific configs
 loadDatasetConfig = {
     "CLEVR": configCLEVR,
-    "NLVR": configNLVR
+    "NLVR": configNLVR,
+    "SQUAD": configSQUAD
 }

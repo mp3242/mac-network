@@ -109,26 +109,48 @@ class MACnet(object):
 
     # Feeds data into placeholders. See addPlaceholders method for further details.
     def createFeedDict(self, data, images, train):
-        feedDict = {
-            self.questionsIndicesAll: data["questions"],
-            self.questionLengthsAll: data["questionLengths"],
-            self.imagesPlaceholder: images["images"],
-            self.answersIndicesAll: data["answers"],
-            
-            self.dropouts["encInput"]: config.encInputDropout if train else 1.0,
-            self.dropouts["encState"]: config.encStateDropout if train else 1.0,
-            self.dropouts["stem"]: config.stemDropout if train else 1.0,
-            self.dropouts["question"]: config.qDropout if train else 1.0, #_
-            self.dropouts["memory"]: config.memoryDropout if train else 1.0,
-            self.dropouts["read"]: config.readDropout if train else 1.0, #_
-            self.dropouts["write"]: config.writeDropout if train else 1.0,
-            self.dropouts["output"]: config.outputDropout if train else 1.0,
-            # self.dropouts["question"]Out: config.qDropoutOut if train else 1.0,
-            # self.dropouts["question"]MAC: config.qDropoutMAC if train else 1.0,
 
-            self.lr: config.lr,
-            self.train: train
-        }
+        if config.useImages:
+            feedDict = {
+                self.questionsIndicesAll: data["questions"],
+                self.questionLengthsAll: data["questionLengths"],
+                self.imagesPlaceholder: images["images"],
+                self.answersIndicesAll: data["answers"],
+                
+                self.dropouts["encInput"]: config.encInputDropout if train else 1.0,
+                self.dropouts["encState"]: config.encStateDropout if train else 1.0,
+                self.dropouts["stem"]: config.stemDropout if train else 1.0,
+                self.dropouts["question"]: config.qDropout if train else 1.0, #_
+                self.dropouts["memory"]: config.memoryDropout if train else 1.0,
+                self.dropouts["read"]: config.readDropout if train else 1.0, #_
+                self.dropouts["write"]: config.writeDropout if train else 1.0,
+                self.dropouts["output"]: config.outputDropout if train else 1.0,
+                # self.dropouts["question"]Out: config.qDropoutOut if train else 1.0,
+                # self.dropouts["question"]MAC: config.qDropoutMAC if train else 1.0,
+
+                self.lr: config.lr,
+                self.train: train
+            }
+        else:
+            feedDict = {
+                self.questionsIndicesAll: data["questions"],
+                self.questionLengthsAll: data["questionLengths"],
+                self.answersIndicesAll: data["answers"],
+                
+                self.dropouts["encInput"]: config.encInputDropout if train else 1.0,
+                self.dropouts["encState"]: config.encStateDropout if train else 1.0,
+                self.dropouts["stem"]: config.stemDropout if train else 1.0,
+                self.dropouts["question"]: config.qDropout if train else 1.0, #_
+                self.dropouts["memory"]: config.memoryDropout if train else 1.0,
+                self.dropouts["read"]: config.readDropout if train else 1.0, #_
+                self.dropouts["write"]: config.writeDropout if train else 1.0,
+                self.dropouts["output"]: config.outputDropout if train else 1.0,
+                # self.dropouts["question"]Out: config.qDropoutOut if train else 1.0,
+                # self.dropouts["question"]MAC: config.qDropoutMAC if train else 1.0,
+
+                self.lr: config.lr,
+                self.train: train
+            }
 
         # if config.tempDynamic:
         #     feedDict[self.tempAnnealRate] = tempAnnealRate          
@@ -709,6 +731,7 @@ class MACnet(object):
 
         return predsList
 
+
     '''
     Processes a batch of data with the model.
 
@@ -795,7 +818,7 @@ class MACnet(object):
                             output, dim = self.baseline(vecQuestions, config.ctrlDim, 
                                 self.images, self.imageInDim, config.attDim)
                         # MAC model
-                        else:      
+                        else:
                             # self.temperature = self.getTemp()
                             
                             finalControl, finalMemory = self.MACnetwork(imageFeatures, vecQuestions, 
