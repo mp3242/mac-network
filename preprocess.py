@@ -107,6 +107,7 @@ class SymbolDict(object):
     # Encodes a symbol. Returns the matching integer.
     def encodeSym(self, symbol):
         if symbol not in self.sym2id:
+            print("crap:",symbol)
             symbol = self.unknown
         return self.sym2id[symbol]
 
@@ -358,8 +359,8 @@ class Preprocesser(object):
 
             random.shuffle(instances)
 
-            self.answerDict.addSeq("[NOP]")
-            self.qaDict.addSeq("[NOP]")
+            self.answerDict.addSeq(["<NOP>"])
+            self.qaDict.addSeq(["<NOP>"])
 
             self.questionDict.createVocab()
             self.answerDict.createVocab()
@@ -378,10 +379,10 @@ class Preprocesser(object):
         # data extraction
         datasetReader = {
             "CLEVR": self.readCLEVR,
-            "NLVR": self.readNLVR,
-            "SQUAD": self.readSQUAD
+            "NLVR": self.readNLVR
         }
 
+        print("DATSET:  ", config.dataset, datasetFilename, instancesFilename, train)
         return datasetReader[config.dataset](datasetFilename, instancesFilename, train)
 
     # Reads dataset tier (train, val, test) and returns the loaded instances 
@@ -574,8 +575,8 @@ class Preprocesser(object):
                 assert firstHalf[i]["questionSeq"] != secondHalf[i]["questionSeq"]
                 # print(firstHalf[i]["answer"])
                 # sys.exit()
-                firstHalf[i]["answer"] = "[NOP]"
-                secondHalf[i]["answer"] = "[NOP]"
+                firstHalf[i]["answer"] = "<NOP>"
+                secondHalf[i]["answer"] = "<NOP>"
 
         # bucket
         buckets = self.bucketData(data, noBucket = noBucket)

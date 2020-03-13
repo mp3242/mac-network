@@ -131,7 +131,7 @@ def parseArgs():
     parser.add_argument("--expName",        default = "experiment", type = str,    help = "experiment name") 
 
     # data files
-    parser.add_argument("--dataset",         default = "CLEVR", choices = ["CLEVR", "NLVR", "SQUAD"], type = str) # 
+    parser.add_argument("--dataset",         default = "CLEVR", choices = ["CLEVR", "NLVR"], type = str) # 
     parser.add_argument("--dataBasedir",     default = "./", type = str,            help = "data base directory") # /jagupard14/scr1/dorarad/
     parser.add_argument("--generatedPrefix", default = "gennew", type = str,           help = "prefix for generated data files") 
     parser.add_argument("--featureType",     default = "norm_128x32", type = str,   help = "features type") #   
@@ -471,18 +471,8 @@ def configNLVR():
         size = config.featureType.split("_")[-1].split("x")
         config.imageDims = [int(size[1]) / stridesOverall, int(size[0]) / stridesOverall, 3]
 
-def configSQUAD():
-    config.dataPath = "{dataBasedir}/SQUAD".format(dataBasedir = config.dataBasedir)
-    config.datasetFilename = "SQUAD_{tier}_questions.json"
-    config.wordVectorsFile = "./CLEVR_v1/data/glove/glove.6B.{dim}d.txt".format(dim = config.wrdEmbDim) #
-
-    # config.imageDims = [14, 14, 1024]
-    # config.programLims = [5, 10, 15, 20]
-    # config.questionLims = [10, 15, 20, 25]     
-
 ## dataset specific configs
 loadDatasetConfig = {
     "CLEVR": configCLEVR,
-    "NLVR": configNLVR,
-    "SQUAD": configSQUAD
+    "NLVR": configNLVR
 }

@@ -565,7 +565,6 @@ def runEpoch(sess, model, data, train, epoch, saver = None, calle = None,
     dataLen = sum(getLength(bucket) for bucket in buckets)
 
     print("datalen:", dataLen)
-    input()
     
     # make batches and randomize
     batches = []
