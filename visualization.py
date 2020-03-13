@@ -4,7 +4,7 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns; sns.set()
-from scipy.misc import imread, imresize
+import imageio
 from matplotlib.colors import Normalize, LinearSegmentedColormap
 
 flatten = lambda ll: [e for l in ll for e in l]
@@ -128,7 +128,7 @@ def showImgAtt(img, instance, step, ax):
 
 
 def showImgAtts(instance):
-    img = imread(inImgName(instance["imageId"]))
+    img = imageio.imread(inImgName(instance["imageId"]))
 
     length = len(instance["attentions"]["kb"])
     
@@ -203,7 +203,7 @@ def main():
 
         iterations = range(1, length + 1)
         questionList = results[i]["question"].split(" ")
-        table = np.array(results[i]["attentions"]["question"])[:,:(len(questionList) + 1)]        
+        table = np.array(results[i]["attentions"]["question"])[:,:(len(questionList))]
         showTableAtt(results[i], table, iterations, questionList, "text")
 
         if args.sa:
